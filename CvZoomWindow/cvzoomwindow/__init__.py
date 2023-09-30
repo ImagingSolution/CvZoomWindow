@@ -28,7 +28,10 @@ class CvZoomWindow:
         self.__grid_color = (128, 128, 0) # グリッド線の色
         self.__min_grid_disp_scale = 20 # グリッド線を表示する最小倍率
 
+        self.__mouse_event_enabled = True
         self.__mouse_down_flag = False
+
+        self.__mouse_callback_func = None
 
         cv2.namedWindow(winname, cv2.WINDOW_NORMAL)
 
@@ -77,6 +80,13 @@ class CvZoomWindow:
         self.__inter = value
 
     @property
+    def mouse_event_enabled(self) -> bool:
+        return self.__mouse_event_enabled
+    @mouse_event_enabled.setter
+    def mouse_event_enabled(self, value : bool):
+        self.__mouse_event_enabled = value
+
+    @property
     def affine_matrix(self):
         return self.__affine_matrix 
     @affine_matrix.setter
@@ -84,7 +94,6 @@ class CvZoomWindow:
         '''アフィン変換行列の取得／設定
         '''
         self.__affine_matrix = value
-
 
     @property
     def bright_disp_enabled(self) -> bool:
@@ -140,6 +149,10 @@ class CvZoomWindow:
             _description_
         '''
         self.__min_bright_disp_scale = value
+
+    @property
+    def displayed_image(self):
+        return self.__disp_image
         
     def imshow(self, image, zoom_fit : bool = True):
         '''Image display
@@ -162,7 +175,6 @@ class CvZoomWindow:
             self.zoom_fit()
         else:
             self.redraw_image()
-            cv2.waitKey(1)            
 
     def redraw_image(self):
         '''Image redraw
@@ -183,10 +195,11 @@ class CvZoomWindow:
         if self.__bright_disp_enabled is True:
             if self.__affine_matrix[0, 0] > self.__min_bright_disp_scale:
                 # 輝度値を表示する条件が揃っているとき
-                self._draw_bright_line()
+                self._draw_bright_value()
                 
         
         cv2.imshow(self.__winname, self.__disp_image)
+        cv2.waitKey(1)            
 
     def zoom_fit(self, image_width : int = 0, image_height : int = 0):
         '''Display the image in the entire window
@@ -238,15 +251,43 @@ class CvZoomWindow:
         # 画素の中心分(0.5画素)だけ移動する。
         self.__affine_matrix = affine.translateMatrix(0.5, 0.5).dot(self.__affine_matrix)
         # 拡大縮小
-        #self.__affine_matrix[0, 0] = scale
-        #self.__affine_matrix[1, 1] = scale
         self.__affine_matrix = affine.scaleMatrix(scale).dot(self.__affine_matrix)
         # あまり部分を中央に寄せる
         self.__affine_matrix = affine.translateMatrix(offsetx, offsety).dot(self.__affine_matrix)
 
         # 描画
         self.redraw_image()
-        cv2.waitKey(1)    
+        
+    def zoom(self, delta):
+        '''ウィンドウの中心を基点に、画像の拡大／縮小を行う
+        '''
+        # 画像表示領域のサイズ
+        _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+
+        self.zoom_at(delta, win_width/2.0, win_height/2.0)
+
+    def zoom_at(self, delta: float, wx, wy):
+        '''ウィンドウの指定した座標を基点に、画像の拡大／縮小を行う
+        '''
+
+        if delta > 0:
+            # マウスホイールを上に回したとき、画像の拡大
+            if self.__affine_matrix[0, 0] * delta > self.__max_scale:
+                return
+            self.__affine_matrix = affine.scaleAtMatrix(delta, wx, wy).dot(self.__affine_matrix)
+              
+        else:
+            # マウスホイールを下に回したとき、画像の縮小
+            if self.__affine_matrix[0, 0] / delta < self.__min_scale:
+                return
+            self.__affine_matrix = affine.scaleAtMatrix(1/delta, wx, wy).dot(self.__affine_matrix)
+
+        self.redraw_image()
+
+    def pan(self, tx, ty):
+
+        self.__affine_matrix = affine.translateMatrix(tx, ty).dot(self.__affine_matrix)
+        self.redraw_image()
 
     def destroyWindow(self):
         '''ウィンドウの削除
@@ -260,8 +301,12 @@ class CvZoomWindow:
     def resizeWindow(self, width, height):
         cv2.resizeWindow(self.__winname, width, height)
 
-    def set_pixel_callback(self, callback_func):
-        pass
+    def _callback_handler(self, func, *args):
+        return func(*args)
+    
+    def set_mouse_callback(self, callback_func):
+        self.__mouse_callback_func = callback_func
+
 
 
     def _onMouse(self, event, x, y, flags, params):
@@ -286,6 +331,15 @@ class CvZoomWindow:
 
         #print(f"[{x}, {y}] event = {event} flags = {flags} params = {params}")
 
+        if self.__mouse_callback_func is not None:
+            invMat = affine.inverse(self.__affine_matrix)
+            point = affine.afiinePoint(invMat , x, y)
+            self._callback_handler(self.__mouse_callback_func, self, event, x, y, flags, params, point[0], point[1])        
+
+        if self.__mouse_event_enabled is False:
+            # マウスイベントが無効の場合
+            return
+
         if event == cv2.EVENT_LBUTTONDOWN:
             # マウスの左ボタンが押されたとき
             self.__mouse_down_flag = True
@@ -308,23 +362,12 @@ class CvZoomWindow:
 
                 #print(f"[{x}, {y}] event = {event} flags = {flags} params = {params} ({x - self.old_point_x}, {y - self.old_point_y}) {self.__affine_matrix[0, 2]}  {self.__affine_matrix[1, 2]} {self.__old_affine_matrix[0, 2]}  {self.__old_affine_matrix[1, 2]}")
                 self.redraw_image()
-                cv2.waitKey(1)  
 
         elif event == cv2.EVENT_MOUSEWHEEL:
             if flags > 0:
-                # マウスホイールを上に回したとき、画像の拡大
-                if self.__affine_matrix[0, 0] * self.__zoom_delta > self.__max_scale:
-                    return
-                self.__affine_matrix = affine.scaleAtMatrix(self.__zoom_delta, x, y).dot(self.__affine_matrix)
-              
+                self.zoom_at(self.__zoom_delta, x, y)
             else:
-                # マウスホイールを下に回したとき、画像の縮小
-                if self.__affine_matrix[0, 0] / self.__zoom_delta < self.__min_scale:
-                    return
-                self.__affine_matrix = affine.scaleAtMatrix(1/self.__zoom_delta, x, y).dot(self.__affine_matrix)
-
-            self.redraw_image()
-            cv2.waitKey(1)
+                self.zoom_at(1/self.__zoom_delta, x, y)
 
         elif event == cv2.EVENT_LBUTTONDBLCLK:
             # 左ボタンをダブルクリックしたとき、画像全体を表示(zoom_fit)
@@ -334,7 +377,6 @@ class CvZoomWindow:
             # マウスの右ボタンがダブルクリックされたとき、等倍表示にする
             self.__affine_matrix = affine.scaleAtMatrix(1/self.__affine_matrix[0, 0], x, y).dot(self.__affine_matrix)
             self.redraw_image()
-            cv2.waitKey(1)
 
     def _image_disp_rect(self):
         '''画像を表示している領域を取得する
@@ -465,7 +507,7 @@ class CvZoomWindow:
                 self.__grid_color, 
                 1)
 
-    def _draw_bright_line(self):
+    def _draw_bright_value(self):
 
         # 輝度値の表示領域の画像の範囲を計算する
         ret, x0, y0, x1, y1 = self._image_disp_rect()
