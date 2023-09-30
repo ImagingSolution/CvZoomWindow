@@ -1,5 +1,7 @@
 # affine.py
 
+__version__ = "0.0.1"
+
 import cv2
 import numpy as np
 
