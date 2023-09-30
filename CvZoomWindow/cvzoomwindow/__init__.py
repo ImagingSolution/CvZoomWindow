@@ -183,7 +183,10 @@ class CvZoomWindow:
         if self.__src_image is None:
             return
         
-        _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        try:
+            _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        except:
+            print('redraw_image error')
 
         self.__disp_image = cv2.warpAffine(self.__src_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
         
@@ -199,7 +202,7 @@ class CvZoomWindow:
                 
         
         cv2.imshow(self.__winname, self.__disp_image)
-        cv2.waitKey(1)            
+        #cv2.waitKey(1)            
 
     def zoom_fit(self, image_width : int = 0, image_height : int = 0):
         '''Display the image in the entire window
@@ -224,7 +227,10 @@ class CvZoomWindow:
                 return   
 
         # 画像表示領域のサイズ
-        _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        try:
+            _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        except:
+            print('zoom_fit error')
 
         if (image_width * image_height <= 0) or (win_width * win_height <= 0):
             # 画像サイズもしくはウィンドウサイズが０のとき
@@ -262,7 +268,10 @@ class CvZoomWindow:
         '''ウィンドウの中心を基点に、画像の拡大／縮小を行う
         '''
         # 画像表示領域のサイズ
-        _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        try:
+            _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        except:
+            print('zoom error')
 
         self.zoom_at(delta, win_width/2.0, win_height/2.0)
 
@@ -403,7 +412,11 @@ class CvZoomWindow:
 
         # ウィンドウの端の画像上の座標
         # 画像表示領域のサイズ
-        _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        try:
+            _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
+        except:
+            print('_image_disp_rect error')
+
         # 左上側
         win_top_left_img = affine.afiinePoint(invMat, -0.5, -0.5)
         # 右下側
