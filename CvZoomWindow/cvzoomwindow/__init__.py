@@ -23,10 +23,10 @@ class CvZoomWindow:
         self.__max_scale = 300
 
         self.__bright_disp_enabled = True # 輝度値の表示／非表示設定
+        self.__min_bright_disp_scale = 30 # 輝度値を表示する最小倍率
         self.__grid_disp_enabled = True # グリッド線の表示／非表示設定
         self.__grid_color = (128, 128, 0) # グリッド線の色
-        self.__min_grid_disp_scale = 30 # グリッド線を表示する最小倍率
-
+        self.__min_grid_disp_scale = 20 # グリッド線を表示する最小倍率
 
         self.__mouse_down_flag = False
 
@@ -35,6 +35,112 @@ class CvZoomWindow:
         # コールバック関数の登録
         cv2.setMouseCallback(winname, self._onMouse, winname)
 
+
+    @property
+    def winname(self) -> str:
+        return self.__winname
+    
+    @property
+    def zoom_delta(self) -> float:
+        return self.__zoom_delta
+    @zoom_delta.setter
+    def zoom_delta(self, value : float):
+        self.__zoom_delta = value
+
+    @property
+    def scale(self) -> float:
+        '''表示倍率の取得
+        '''      
+        return self.__affine_matrix[0, 0]
+
+    @property
+    def min_scale(self) -> float:
+        return self.__min_scale
+    @min_scale.setter
+    def min_scale(self, value : float):
+        self.__min_scale = value
+
+    @property
+    def max_scale(self) -> float:
+        return self.__max_scale
+    @max_scale.setter
+    def max_scale(self, value : float):
+        self.__max_scale = value
+
+    @property
+    def inter(self):
+        return self.__inter 
+    @inter.setter
+    def inter(self, value):
+        '''補間モードの取得／設定
+        '''
+        self.__inter = value
+
+    @property
+    def affine_matrix(self):
+        return self.__affine_matrix 
+    @affine_matrix.setter
+    def affine_matrix(self, value):
+        '''アフィン変換行列の取得／設定
+        '''
+        self.__affine_matrix = value
+
+
+    @property
+    def bright_disp_enabled(self) -> bool:
+        return self.__bright_disp_enabled 
+    @bright_disp_enabled.setter
+    def bright_disp_enabled(self, value : bool):
+        '''輝度値の表示／非表示設定
+        '''
+        self.__bright_disp_enabled = value
+
+    @property
+    def grid_disp_enabled (self) -> bool:
+        return self.__grid_disp_enabled 
+    @grid_disp_enabled .setter
+    def grid_disp_enabled (self, value : bool):
+        '''グリッド線の表示／非表示設定
+        '''
+        self.__grid_disp_enabled  = value
+
+    @property
+    def grid_color (self):
+        return self.__grid_color 
+    @grid_color .setter
+    def grid_color (self, value):
+        '''グリッド線の色
+        '''
+        self.__grid_color  = value   
+
+    @property
+    def min_grid_disp_scale(self) -> float:
+        return self.__min_grid_disp_scale
+    @min_grid_disp_scale.setter
+    def min_grid_disp_scale(self, value : float):
+        '''グリッド線を表示する最小倍率
+
+        Parameters
+        ----------
+        value : float
+            _description_
+        '''
+        self.__min_grid_disp_scale = value
+
+    @property
+    def min_bright_disp_scale(self) -> float:
+        return self.__min_bright_disp_scale
+    @min_bright_disp_scale.setter
+    def min_bright_disp_scale(self, value : float):
+        '''輝度値を表示する最小倍率
+
+        Parameters
+        ----------
+        value : float
+            _description_
+        '''
+        self.__min_bright_disp_scale = value
+        
     def imshow(self, image, zoom_fit : bool = True):
         '''Image display
 
@@ -72,7 +178,13 @@ class CvZoomWindow:
         if self.__grid_disp_enabled is True:
             if self.__affine_matrix[0, 0] > self.__min_grid_disp_scale:
                 # Grid線を表示する条件が揃っているとき
-                ret, x0, y0, x1, y1 = self._image_disp_rect()
+                self._draw_grid_line()
+
+        if self.__bright_disp_enabled is True:
+            if self.__affine_matrix[0, 0] > self.__min_bright_disp_scale:
+                # 輝度値を表示する条件が揃っているとき
+                self._draw_bright_line()
+                
         
         cv2.imshow(self.__winname, self.__disp_image)
 
@@ -147,6 +259,10 @@ class CvZoomWindow:
 
     def resizeWindow(self, width, height):
         cv2.resizeWindow(self.__winname, width, height)
+
+    def set_pixel_callback(self, callback_func):
+        pass
+
 
     def _onMouse(self, event, x, y, flags, params):
         '''マウスのコールバック関数
@@ -310,87 +426,163 @@ class CvZoomWindow:
 
         return True, image_left, image_top, image_right, image_bottom
 
-    @property
-    def winname(self) -> str:
-        return self.__winname
-    
-    @property
-    def zoom_delta(self) -> float:
-        return self.__zoom_delta
-    @zoom_delta.setter
-    def zoom_delta(self, value : float):
-        self.__zoom_delta = value
+    def _draw_grid_line(self):
 
-    @property
-    def min_scale(self) -> float:
-        return self.__min_scale
-    @min_scale.setter
-    def min_scale(self, value : float):
-        self.__min_scale = value
+        # グリッドの線の表示領域の画像の範囲を計算する
+        ret, x0, y0, x1, y1 = self._image_disp_rect()
 
-    @property
-    def max_scale(self) -> float:
-        return self.__max_scale
-    @max_scale.setter
-    def max_scale(self, value : float):
-        self.__max_scale = value
+        if ret is False:
+            return
 
-    @property
-    def inter(self):
-        return self.__inter 
-    @inter.setter
-    def inter(self, value):
-        '''補間モードの取得／設定
-        '''
-        self.__inter = value
+        # 画像の座標-> ウィンドウ座標のアフィン変換行列
+        m = self.__affine_matrix
 
-    @property
-    def affine_matrix(self):
-        return self.__affine_matrix 
-    @affine_matrix.setter
-    def affine_matrix(self, value):
-        '''アフィン変換行列の取得／設定
-        '''
-        self.__affine_matrix = value
+        # 縦線
+        py0 = m[1, 1] * y0+ m[1, 2]
+        py1 = m[1, 1] * y1+ m[1, 2]
+        py0 = math.floor(py0+0.5)
+        py1 = math.floor(py1+0.5)
+        for x in range(int(x0+0.5), int(x1+0.5)):
+            px = m[0, 0] * (x-0.5)+ m[0, 2]
+            cv2.line(
+                self.__disp_image, 
+                (math.floor(px+0.5), py0), 
+                (math.floor(px+0.5), py1), 
+                self.__grid_color, 
+                1)
 
+        # 横線
+        px0 = m[0, 0] * x0+ m[0, 2]
+        px1 = m[0, 0] * x1+ m[0, 2]
+        px0 = math.floor(px0+0.5)
+        px1 = math.floor(px1+0.5)
+        for y in range(int(y0+0.5), int(y1+0.5)):
+            py = m[1, 1] * (y-0.5)+ m[1, 2]
+            cv2.line(
+                self.__disp_image, 
+                (px0, math.floor(py+0.5)), 
+                (px1, math.floor(py+0.5)), 
+                self.__grid_color, 
+                1)
 
-    @property
-    def bright_disp_enabled(self) -> bool:
-        return self.__bright_disp_enabled 
-    @bright_disp_enabled.setter
-    def bright_disp_enabled(self, value : bool):
-        '''輝度値の表示／非表示設定
-        '''
-        self.__bright_disp_enabled = value
+    def _draw_bright_line(self):
 
-    @property
-    def grid_disp_enabled (self) -> bool:
-        return self.__grid_disp_enabled 
-    @grid_disp_enabled .setter
-    def grid_disp_enabled (self, value : bool):
-        '''グリッド線の表示／非表示設定
-        '''
-        self.__grid_disp_enabled  = value
+        # 輝度値の表示領域の画像の範囲を計算する
+        ret, x0, y0, x1, y1 = self._image_disp_rect()
 
-    @property
-    def grid_color (self):
-        return self.__grid_color 
-    @grid_color .setter
-    def grid_color (self, value):
-        '''グリッド線の色
-        '''
-        self.__grid_color  = value   
+        if ret is False:
+            return
 
-    @property
-    def min_grid_disp_scale(self) -> float:
-        return self.__min_grid_disp_scale
-    @min_grid_disp_scale.setter
-    def min_grid_disp_scale(self, value : float):
-        '''グリッド線を表示する最小倍率
+        # 画像の座標-> ウィンドウ座標のアフィン変換行列
+        m = self.__affine_matrix
 
-        Parameters
-        ----------
-        value : float
-            _description_
-        '''
-        self.__min_grid_disp_scale = value
+        py0 = m[1, 1] * y0+ m[1, 2]
+        py1 = m[1, 1] * y1+ m[1, 2]
+        py0 = math.floor(py0+0.5)
+        py1 = math.floor(py1+0.5)
+
+        px0 = m[0, 0] * x0+ m[0, 2]
+        px1 = m[0, 0] * x1+ m[0, 2]
+        px0 = math.floor(px0+0.5)
+        px1 = math.floor(px1+0.5)
+
+        offset_x = int(m[0, 0] / 90)
+        offset_y = int(m[0, 0] / 6)
+
+        offset_r = int(m[0, 0] / 1.58)
+        offset_g = int(m[0, 0] / 1.24)
+        offset_b = int(m[0, 0] / 1.03)
+
+        fore_r = (0, 0, 200)
+        fore_g = (0, 200, 0)
+        fore_b = (200, 0, 0)
+
+        thick = 1
+
+        if self.__disp_image.ndim == 3:
+            # カラーのとき
+            for y in range(int(y0+0.5), int(y1+0.5)):
+                for x in range(int(x0+0.5), int(x1+0.5)):
+                    px = m[0, 0] * (x-0.5)+ m[0, 2]
+                    py = m[1, 1] * (y-0.5)+ m[1, 2]
+
+                    bright = self.__src_image[y, x, :]
+
+                    if bright.max() > 127:
+                        fore_color = (0, 0, 0)
+                    else:
+                        fore_color = (255, 255, 255)
+
+                    # 座標
+                    cv2.putText(
+                        self.__disp_image,
+                        text=f"({x},{y})",
+                        org=(math.floor(px+0.5) + offset_x, math.floor(py+0.5) + offset_y),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,#cv2.FONT_HERSHEY_DUPLEX, #cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=m[0, 0] / 200,
+                        color=fore_color,
+                        thickness = thick)
+
+                    # B
+                    cv2.putText(
+                        self.__disp_image,
+                        text=f"{str(bright[0]).rjust(11)}",
+                        org=(math.floor(px+0.5) + offset_x, math.floor(py+0.5) + offset_b),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,#cv2.FONT_HERSHEY_DUPLEX, #cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=m[0, 0] / 200,
+                        color=fore_b,
+                        thickness = thick)
+
+                    # G
+                    cv2.putText(
+                        self.__disp_image,
+                        text=f"{str(bright[1]).rjust(11)}",
+                        org=(math.floor(px+0.5) + offset_x, math.floor(py+0.5) + offset_g),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,#cv2.FONT_HERSHEY_DUPLEX, #cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=m[0, 0] / 200,
+                        color=fore_g,
+                        thickness = thick)
+
+                    # R
+                    cv2.putText(
+                        self.__disp_image,
+                        text=f"{str(bright[2]).rjust(11)}",
+                        org=(math.floor(px+0.5) + offset_x, math.floor(py+0.5) + offset_r),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,#cv2.FONT_HERSHEY_DUPLEX, #cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=m[0, 0] / 200,
+                        color=fore_r,
+                        thickness = thick)
+
+        else:
+            # モノクロのとき
+            for y in range(int(y0+0.5), int(y1+0.5)):
+                for x in range(int(x0+0.5), int(x1+0.5)):
+                    px = m[0, 0] * (x-0.5)+ m[0, 2]
+                    py = m[1, 1] * (y-0.5)+ m[1, 2]
+
+                    bright = self.__src_image[y, x]
+
+                    if bright > 127:
+                        fore_color = (0, 0, 0)
+                    else:
+                        fore_color = (255, 255, 255)
+
+                    # 座標
+                    cv2.putText(
+                        self.__disp_image,
+                        text=f"({x},{y})",
+                        org=(math.floor(px+0.5) + offset_x, math.floor(py+0.5) + offset_y),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,#cv2.FONT_HERSHEY_DUPLEX, #cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=m[0, 0] / 200,
+                        color=fore_color,
+                        thickness = thick)
+
+                    # 輝度値
+                    cv2.putText(
+                        self.__disp_image,
+                        text=f"{str(bright).rjust(11)}",
+                        org=(math.floor(px+0.5) + offset_x, math.floor(py+0.5) + offset_b),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,#cv2.FONT_HERSHEY_DUPLEX, #cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=m[0, 0] / 200,
+                        color=fore_color,
+                        thickness = thick)

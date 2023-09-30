@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>5a9bf2fd-646c-4ec6-95d3-859426e5d6cd</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>sample.py</StartupFile>
+    <StartupFile>eva.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,7 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="cvzoomwindow\affine.py" />
-    <Compile Include="eve.py">
+    <Compile Include="eva.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="sample.py" />
