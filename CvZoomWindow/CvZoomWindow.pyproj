@@ -28,7 +28,10 @@
     <Compile Include="eva_camera.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="sample.py" />
+    <Compile Include="sample.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="sample_old.py" />
     <Compile Include="cvzoomwindow\__init__.py">
       <SubType>Code</SubType>
     </Compile>

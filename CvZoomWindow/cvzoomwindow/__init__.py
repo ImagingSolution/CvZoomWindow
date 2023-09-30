@@ -7,7 +7,18 @@ from cvzoomwindow import affine
 
 class CvZoomWindow:
 
-    def __init__(self, winname, back_color = (128, 128, 0), inter = cv2.INTER_NEAREST):
+    def __init__(self, winname : str, back_color = (128, 128, 0), inter = cv2.INTER_NEAREST):
+        '''Instantiate the CvZoomWindow class.
+
+        Parameters
+        ----------
+        winname : str
+            Name of the window
+        back_color : tuple, optional
+            background color, by default (128, 128, 0)
+        inter : optional
+            interpolation methods, by default cv2.INTER_NEAREST
+        '''
 
         self.__winname = winname        # namedWindowのタイトル
         self.__back_color = back_color  # 背景色
@@ -38,9 +49,15 @@ class CvZoomWindow:
         # コールバック関数の登録
         cv2.setMouseCallback(winname, self._onMouse, winname)
 
-
     @property
     def winname(self) -> str:
+        '''Get window name
+
+        Returns
+        -------
+        str
+            window name
+        '''
         return self.__winname
     
     @property
@@ -48,11 +65,18 @@ class CvZoomWindow:
         return self.__zoom_delta
     @zoom_delta.setter
     def zoom_delta(self, value : float):
+        '''Get and set the zoom factor per notch of the mouse wheel.
+
+        Parameters
+        ----------
+        value : float
+            zoom factor per notch of the mouse wheel.( > 1)
+        '''
         self.__zoom_delta = value
 
     @property
     def scale(self) -> float:
-        '''表示倍率の取得
+        '''Gets the current image display zoom factor.
         '''      
         return self.__affine_matrix[0, 0]
 
@@ -61,6 +85,13 @@ class CvZoomWindow:
         return self.__min_scale
     @min_scale.setter
     def min_scale(self, value : float):
+        '''Gets and sets the minimum display zoom factor.
+
+        Parameters
+        ----------
+        value : float
+            minimum zoom factor
+        '''
         self.__min_scale = value
 
     @property
@@ -68,6 +99,13 @@ class CvZoomWindow:
         return self.__max_scale
     @max_scale.setter
     def max_scale(self, value : float):
+        '''Gets and sets the maximum display zoom factor.
+
+        Parameters
+        ----------
+        value : float
+            maximum zoom factor.
+        '''
         self.__max_scale = value
 
     @property
@@ -75,7 +113,7 @@ class CvZoomWindow:
         return self.__inter 
     @inter.setter
     def inter(self, value):
-        '''補間モードの取得／設定
+        '''Gets and sets the interpolation mode.(OpenCV enum cv::InterpolationFlags)
         '''
         self.__inter = value
 
@@ -84,6 +122,13 @@ class CvZoomWindow:
         return self.__mouse_event_enabled
     @mouse_event_enabled.setter
     def mouse_event_enabled(self, value : bool):
+        '''Enables(True)/disables(False) image scaling and movement by mouse operation.
+
+        Parameters
+        ----------
+        value : bool
+            mouse operation enable
+        '''
         self.__mouse_event_enabled = value
 
     @property
@@ -91,7 +136,12 @@ class CvZoomWindow:
         return self.__affine_matrix 
     @affine_matrix.setter
     def affine_matrix(self, value):
-        '''アフィン変換行列の取得／設定
+        '''Gets and sets the affine transformation matrix.
+
+        Parameters
+        ----------
+        value : np.ndarray
+            affine matrix
         '''
         self.__affine_matrix = value
 
@@ -100,7 +150,13 @@ class CvZoomWindow:
         return self.__bright_disp_enabled 
     @bright_disp_enabled.setter
     def bright_disp_enabled(self, value : bool):
-        '''輝度値の表示／非表示設定
+        '''Gets and sets the display/non-display settings for luminance values.
+
+        Parameters
+        ----------
+        value : bool
+            True : display
+            False : non-display
         '''
         self.__bright_disp_enabled = value
 
@@ -109,7 +165,13 @@ class CvZoomWindow:
         return self.__grid_disp_enabled 
     @grid_disp_enabled .setter
     def grid_disp_enabled (self, value : bool):
-        '''グリッド線の表示／非表示設定
+        '''Gets and sets the display/non-display settings for grid lines
+
+        Parameters
+        ----------
+        value : bool
+            True : display
+            False : non-display
         '''
         self.__grid_disp_enabled  = value
 
@@ -118,7 +180,12 @@ class CvZoomWindow:
         return self.__grid_color 
     @grid_color .setter
     def grid_color (self, value):
-        '''グリッド線の色
+        '''Gets and sets the color of the grid lines.
+
+        Parameters
+        ----------
+        value : 
+            Line color.
         '''
         self.__grid_color  = value   
 
@@ -127,12 +194,12 @@ class CvZoomWindow:
         return self.__min_grid_disp_scale
     @min_grid_disp_scale.setter
     def min_grid_disp_scale(self, value : float):
-        '''グリッド線を表示する最小倍率
+        '''Minimum scale factor for displaying grid lines
 
         Parameters
         ----------
         value : float
-            _description_
+            Minimum scale
         '''
         self.__min_grid_disp_scale = value
 
@@ -141,17 +208,19 @@ class CvZoomWindow:
         return self.__min_bright_disp_scale
     @min_bright_disp_scale.setter
     def min_bright_disp_scale(self, value : float):
-        '''輝度値を表示する最小倍率
+        '''Gets or sets the minimum scale factor at which luminance values are to be displayed.
 
         Parameters
         ----------
         value : float
-            _description_
+            minimum scale
         '''
         self.__min_bright_disp_scale = value
 
     @property
     def displayed_image(self):
+        '''Gets the image displayed in the window.
+        '''
         return self.__disp_image
         
     def imshow(self, image, zoom_fit : bool = True):
@@ -186,7 +255,8 @@ class CvZoomWindow:
         try:
             _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
         except:
-            print('redraw_image error')
+            #print('redraw_image error')
+            return
 
         self.__disp_image = cv2.warpAffine(self.__src_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
         
@@ -231,6 +301,7 @@ class CvZoomWindow:
             _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
         except:
             print('zoom_fit error')
+            return
 
         if (image_width * image_height <= 0) or (win_width * win_height <= 0):
             # 画像サイズもしくはウィンドウサイズが０のとき
@@ -264,59 +335,139 @@ class CvZoomWindow:
         # 描画
         self.redraw_image()
         
-    def zoom(self, delta):
-        '''ウィンドウの中心を基点に、画像の拡大／縮小を行う
+    def zoom(self, delta : float):
+        '''Zoom in/out the image based on the center of the window.
+
+        Parameters
+        ----------
+        delta : _type_
+            relative zoom factor
+            value > 1 : zoom up
+            value < 1 : zoom down
         '''
         # 画像表示領域のサイズ
         try:
             _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
         except:
-            print('zoom error')
+            #print('zoom error')
+            return
 
         self.zoom_at(delta, win_width/2.0, win_height/2.0)
 
-    def zoom_at(self, delta: float, wx, wy):
-        '''ウィンドウの指定した座標を基点に、画像の拡大／縮小を行う
+    def zoom_at(self, delta: float, wx : float, wy : float):
+        '''Scale up/down the image based on the specified coordinates of the window.
+
+        Parameters
+        ----------
+        delta : float
+            relative zoom factor
+        wx : float
+            Window X-coordinate
+        wy : float
+            Window Y-coordinate
         '''
 
-        if delta > 0:
+        if delta >= 1.0:
             # マウスホイールを上に回したとき、画像の拡大
             if self.__affine_matrix[0, 0] * delta > self.__max_scale:
                 return
             self.__affine_matrix = affine.scaleAtMatrix(delta, wx, wy).dot(self.__affine_matrix)
               
-        else:
+        elif delta > 0.0:
             # マウスホイールを下に回したとき、画像の縮小
-            if self.__affine_matrix[0, 0] / delta < self.__min_scale:
+            if self.__affine_matrix[0, 0] * delta < self.__min_scale:
                 return
-            self.__affine_matrix = affine.scaleAtMatrix(1/delta, wx, wy).dot(self.__affine_matrix)
+            self.__affine_matrix = affine.scaleAtMatrix(delta, wx, wy).dot(self.__affine_matrix)
+        else:
+            return
 
         self.redraw_image()
 
-    def pan(self, tx, ty):
+    def pan(self, tx : float, ty : float):
+        '''Moves and displays images.
 
+        Parameters
+        ----------
+        tx : float
+            Amount of movement in X direction
+        ty : float
+            Amount of movement in Y direction
+        '''
         self.__affine_matrix = affine.translateMatrix(tx, ty).dot(self.__affine_matrix)
         self.redraw_image()
 
     def destroyWindow(self):
-        '''ウィンドウの削除
+        '''Delete Window
         '''
         cv2.destroyWindow(self.__winname)
 
-    def waitKey(self, delay : int = 0):
-        # キー入力待ち
-        return cv2.waitKey(delay)
+    def resizeWindow(self, width : int, height : int):
+        '''Sets the window size.
 
-    def resizeWindow(self, width, height):
+        Parameters
+        ----------
+        width : int
+            Window Width
+        height : int
+            Window Height
+        '''
         cv2.resizeWindow(self.__winname, width, height)
 
     def _callback_handler(self, func, *args):
         return func(*args)
     
     def set_mouse_callback(self, callback_func):
+        '''Registers a callback function for mouse operations.
+
+        Parameters
+        ----------
+        callback_func : 
+            callback function
+        '''
         self.__mouse_callback_func = callback_func
 
+    def image_to_window_point(self, img_x : float, img_y : float):
+        '''Converts image coordinates to window coordinates.
 
+        Parameters
+        ----------
+        img_x : float
+            X coordinate of image
+        img_y : float
+            Y coordinate of image
+
+        Returns
+        -------
+        (win_x : float, win_y : float)
+        win_x : float
+            X coordinate of window
+        win_y : float
+            Y coordinate of window
+        '''
+        point = affine.afiinePoint(self.__affine_matrix , img_x, img_y)
+        return point[0], point[1]
+
+    def window_to_image_point(self, w_x, w_y):
+        '''Converts window coordinates to image coordinates.
+
+        Parameters
+        ----------
+        w_x : float
+            X coordinate of window
+        w_y : float
+            Y coordinate of window
+
+        Returns
+        -------
+        (img_x : float, img_y : float)
+        img_x : float
+            X coordinate of image
+        img_y : float
+            Y coordinate of image
+        '''
+        invMat = affine.inverse(self.__affine_matrix)
+        point = affine.afiinePoint(invMat , w_x, w_y)
+        return point[0], point[1]
 
     def _onMouse(self, event, x, y, flags, params):
         '''マウスのコールバック関数
@@ -343,7 +494,7 @@ class CvZoomWindow:
         if self.__mouse_callback_func is not None:
             invMat = affine.inverse(self.__affine_matrix)
             point = affine.afiinePoint(invMat , x, y)
-            self._callback_handler(self.__mouse_callback_func, self, event, x, y, flags, params, point[0], point[1])        
+            self._callback_handler(self.__mouse_callback_func, self, event, x, y, flags, params, point[0], point[1], self.affine_matrix[0,0])        
 
         if self.__mouse_event_enabled is False:
             # マウスイベントが無効の場合
@@ -416,6 +567,7 @@ class CvZoomWindow:
             _, _, win_width, win_height = cv2.getWindowImageRect(self.__winname)
         except:
             print('_image_disp_rect error')
+            return
 
         # 左上側
         win_top_left_img = affine.afiinePoint(invMat, -0.5, -0.5)
@@ -552,7 +704,11 @@ class CvZoomWindow:
         fore_g = (0, 200, 0)
         fore_b = (200, 0, 0)
 
-        thick = 1
+        if self.__affine_matrix[0, 0] > 100:
+            thick = 2
+        else:
+            thick = 1
+
 
         if self.__disp_image.ndim == 3:
             # カラーのとき

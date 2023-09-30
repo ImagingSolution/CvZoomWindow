@@ -6,6 +6,8 @@ import cvzoomwindow
 # Zoom Windowの作成
 zw = cvzoomwindow.CvZoomWindow("Zoom Window")
 
+zw.zoom_fit(640, 480)
+
 # カメラを開く
 cap = cv2.VideoCapture(0)
 
@@ -17,7 +19,7 @@ while True:
     zw.imshow(frame, False)
 
     # `q`キーを押すとループを終了する
-    if zw.waitKey(1) == ord('q'):
+    if cv2.waitKey(1) == ord('q'):
         break
 
 # カメラを閉じる
